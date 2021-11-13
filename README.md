@@ -7,7 +7,7 @@
 * 기능: 특정 날짜의 특정 선박의 스케쥴을 크롤링 해오기, 일정 간격으로 자동 업데이트 가능
 
 
-## ver 1.0 -2021/11/13 SAT
+## ver 1.0 
 
 ### 실행 화면
 
@@ -17,6 +17,7 @@
 
 <img width="416" alt="jhresult" src="https://user-images.githubusercontent.com/78152114/141647260-27852112-fd22-4485-b3c0-ac3b6a0e616a.png">
 
+Last Updated -2021/11/13 SAT
 1. 선박 스케쥴 결과 표시
 2. 수동 업데이트
 3. 업데이트 정보 표시
