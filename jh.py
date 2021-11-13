@@ -23,8 +23,11 @@ class WindowClass(QMainWindow, form_class) :
         self.date = QDate.currentDate()
         self.cur_date = self.date.toString("yyyy-MM-dd")
         self.dateEdit.setDate(self.date)
+        self.url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vesselCode}&fromDate={self.cur_date}"
+        self.driver = webdriver.Chrome(ChromeDriverManager().install())
         self.timerVar = QTimer()
         self.interval = 60000
+        self.cnt = 0
 
 
         self.btn_update.clicked.connect(self.crawl)
@@ -67,12 +70,14 @@ class WindowClass(QMainWindow, form_class) :
     def crawl(self):
         browser = self.txt_browser
         browser.clear()
-        url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vesselCode}&fromDate={self.cur_date}"
-        driver = webdriver.Chrome(ChromeDriverManager().install())
-        driver.get(url)
-        driver.implicitly_wait(10)
-        btn_cookies = driver.find_element_by_class_name("coi-banner__accept").click()
-        results = driver.find_elements_by_class_name("ptp-results__transport-plan--item")
+        self.driver.get(self.url)
+        self.driver.implicitly_wait(10)
+        self.cnt+=1
+        if self.cnt == 1:
+            btn_cookies = self.driver.find_element_by_class_name("coi-banner__accept")
+            btn_cookies.click()
+
+        results = self.driver.find_elements_by_class_name("ptp-results__transport-plan--item")
         for result in results:
             port,terminal = result.find_element_by_class_name("location").find_elements_by_tag_name("div")
             arrival = result.find_element_by_class_name("transport-label")
@@ -85,10 +90,11 @@ class WindowClass(QMainWindow, form_class) :
         self.lbl_date.setText(f"Updated to {self.cur_date}")
         self.lbl_vesselName.setText("Vessel Name : MARIE MAERSK")
         self.txt_time.setText(datetime.datetime.now().strftime("%y/%m/%d %H.%M.%S"))
-        driver.quit()
+
 
 if __name__ == "__main__" :
     app = QApplication(sys.argv)
     myWindow = WindowClass()
     myWindow.show()
     app.exec_()
+    myWindow.driver.quit()
