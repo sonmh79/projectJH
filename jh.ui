@@ -50,10 +50,10 @@
    <widget class="QLabel" name="lbl_date">
     <property name="geometry">
      <rect>
-      <x>1170</x>
+      <x>1110</x>
       <y>110</y>
       <width>191</width>
-      <height>35</height>
+      <height>20</height>
      </rect>
     </property>
     <property name="text">
@@ -63,10 +63,10 @@
    <widget class="QLabel" name="lbl_vesselName">
     <property name="geometry">
      <rect>
-      <x>1170</x>
-      <y>150</y>
+      <x>1110</x>
+      <y>130</y>
       <width>191</width>
-      <height>35</height>
+      <height>20</height>
      </rect>
     </property>
     <property name="text">
@@ -293,6 +293,19 @@
     </property>
     <property name="text">
      <string>update</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="lbl_vesselW">
+    <property name="geometry">
+     <rect>
+      <x>1110</x>
+      <y>160</y>
+      <width>191</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
     </property>
    </widget>
   </widget>

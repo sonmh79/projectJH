@@ -23,42 +23,49 @@ class WindowClass(QMainWindow, form_class) :
     def __init__(self) :
         super().__init__()
         self.setupUi(self)
-        self.vesselCode = "1JM"
+        self.driver = webdriver.Chrome(ChromeDriverManager().install())
+
+        # Fixed Variable
+        self.vesselData = {"MARIE MAERSK" : "1JM"}
+        self.target_ports = ["Gdansk", "Bremerhaven"]
+        self.months = {"Jan":1, "Feb":2, "Mar":3, "Apr":4, "May":5, "Jun":6, "Jul":7, "Aug":8, "Sep":9, "Oct":10, "Nov":11, "Dec":12 }
+
+        # Vessel Variables ( Updated from Clicked Cell )
+        self.selected_vessel = "MARIE MAERSK"
+        self.vessel_w = ""
+
         self.date = QDate.currentDate()
         self.cur_date = self.date.toString("yyyy-MM-dd")
         self.dateEdit.setDate(self.date)
-        self.url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vesselCode}&fromDate={self.cur_date}"
-        self.driver = webdriver.Chrome(ChromeDriverManager().install())
+        self.url = ""
         self.timerVar = QTimer()
         self.interval = 60000
         self.cnt = 0
 
 
+        #self.crawl()
+        self.initTable()
+
+        # Connect Functions with Widgets
         self.btn_update.clicked.connect(self.crawl)
         self.dateEdit.dateChanged.connect(self.dateChanged)
         self.btn_start.clicked.connect(self.setTimer)
         self.btn_stop.clicked.connect(self.stopTimer)
         self.cmb_interval.currentIndexChanged.connect(self.changeInterval)
-        self.crawl()
         self.btn_refresh.clicked.connect(self.initTable)
         self.btn_updateValue.clicked.connect(self.updateValue)
-        self.initTable()
 
     def updateValue(self):
 
         """Update Value Modified by User"""
 
-        wb = openpyxl.load_workbook(filename="schedule.xlsx",read_only=False, data_only=True)
+        wb = openpyxl.load_workbook(filename="schedule(test).xlsx",read_only=False, data_only=True)
         ws = wb["Vessel schedule"]
         target = chr(int(self.c) + 65) + str(self.r + 2) # (0,0) -> A1, Z열까지만 가능
         newValue = self.valueEdit.text()
         ws[target] = newValue
         wb.save("schedule.xlsx")
         self.initTable()
-
-
-        pass
-
 
     def resetUpdateLayout(self):
 
@@ -74,6 +81,11 @@ class WindowClass(QMainWindow, form_class) :
         self.resetUpdateLayout()
 
         clickedColumnValue = self.df.iloc[r,c]
+        vessel_info = self.df.iloc[r,1].split()
+        self.selected_vessel = vessel_info[0] + " " + vessel_info[1]
+        self.vessel_w = vessel_info[-1].strip(" ") # 142W
+        self.lbl_vesselName.setText(f"Vessel Name : {self.selected_vessel}")
+        self.lbl_vesselW.setText(f"Vessel W : {self.vessel_w}")
 
         layout = self.updateLayout
 
@@ -173,45 +185,67 @@ class WindowClass(QMainWindow, form_class) :
         self.date = self.dateEdit.date()
         self.cur_date = self.date.toString("yyyy-MM-dd")
 
+    def message_question(self,title,text):
 
+        """ Qmessagebox - Question """
+
+        reply = QMessageBox.question(self, title, text,
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        return reply
 
     def crawl(self):
 
         """Start Crawling"""
 
-        self.url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vesselCode}&fromDate={self.cur_date}"
-        self.driver.get(self.url)
-        self.driver.implicitly_wait(10)
+        self.url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vesselData[self.selected_vessel]}&fromDate={self.cur_date}"
+        driver = self.driver
+        driver.get(self.url)
+        driver.implicitly_wait(10)
         try:
-            btn_cookies = self.driver.find_element(By.CLASS_NAME,"coi-banner__accept")
+            btn_cookies = driver.find_element(By.CLASS_NAME,"coi-banner__accept")
             btn_cookies.click()
         except:
             pass
 
-        results = self.driver.find_elements(By.CLASS_NAME,"ptp-results__transport-plan--item")
-        final_element = self.driver.find_elements(By.CLASS_NAME,"ptp-results__transport-plan--item-final")
+        # Get Divs from Schedule Result
+        results = driver.find_elements(By.CLASS_NAME,"ptp-results__transport-plan--item")
+        final_element = driver.find_elements(By.CLASS_NAME,"ptp-results__transport-plan--item-final")
         port_info = [] # port, arrival, department
-        arr = True
-        for i, result in enumerate(results + final_element): # port와 date 정보 추출
+
+        # Get Port Information like port name, a_or_d info, planned date
+        for i, result in enumerate(results + final_element):
             port,_ = result.find_element(By.CLASS_NAME,"location").find_elements(By.TAG_NAME,"div")
-            _,date = result.find_element(By.CLASS_NAME,"transport-label").find_elements(By.TAG_NAME,"div")
+            a_or_d ,date = result.find_element(By.CLASS_NAME,"transport-label").find_elements(By.TAG_NAME,"div")
+
             p,d = port.text, date.text
+            a_or_d_list = a_or_d.text.split("-")
+            cur_vessel_w = a_or_d_list[-1].strip(" ")
 
-            if (len(port.text)) == 0: # port 문자열이 비어있다면 date는 arrival 날짜 else department
-                arr = False
-            else:
-                arr = True
+            if cur_vessel_w != self.vessel_w or p not in self.target_ports:
+                continue
 
-            if arr:
+            if "Arrival" in a_or_d.text.split("-")[0]:
                 info = [p,d]
                 port_info.append(info)
             else:
                 port_info[-1].append(d)
         print(port_info)
 
+        result = []
+        if len(port_info) == 2:
+            result.append("Omit")
+
+        for data in port_info:
+            port_name = data[0]
+            date = data[1]
+            day, month, year, time = date.split()
+            trans_date =f"{year}-{self.months[month]}-{day} {time}:00"
+            result.append(trans_date)
+        title = f"{self.selected_vessel} {self.vessel_w}"
+        context = f"B - {result[0]} \nG - {result[1]} \nB - {result[2]}"
+        reply = self.message_question(title , context)
 
         self.lbl_date.setText(f"Last Updated {self.cur_date}")
-        self.lbl_vesselName.setText("Vessel Name : MARIE MAERSK")
         self.txt_time.setText(datetime.datetime.now().strftime("%y/%m/%d %H.%M.%S"))
 
 
