@@ -26,7 +26,7 @@ class WindowClass(QMainWindow, form_class) :
         self.driver = webdriver.Chrome(ChromeDriverManager().install())
 
         # Fixed Variable
-        self.vesselData = {"MARIE MAERSK" : "1JM"}
+        self.vesselData = {"MOGENS MAERSK": "1RM", "MARSEILLE MAERSK":"Y29", "MARIE MAERSK" : "1JM", "MAJESTIC MAERSK":"1HM", "MADISON MAERSK":"1KM","MATHILDE MAERSK":"2BM","MAASTRICHT MAERSK":"Y34","MURCIA MAERSK":"Y31","METTE MAERSK":"1ZM","MUNICH MAERSK":"Y25","MERETE MAERSK":"1QM","MADRID MAERSK":"Y24"}
         self.target_ports = ["Gdansk", "Bremerhaven"]
         self.months = {"Jan":1, "Feb":2, "Mar":3, "Apr":4, "May":5, "Jun":6, "Jul":7, "Aug":8, "Sep":9, "Oct":10, "Nov":11, "Dec":12 }
 
@@ -95,8 +95,6 @@ class WindowClass(QMainWindow, form_class) :
         layout.addWidget(e)
 
         self.r, self.c, self.valueEdit = r, c, e
-
-
 
     def setLabel1(self, row, column):
 
