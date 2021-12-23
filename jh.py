@@ -26,7 +26,7 @@ class WindowClass(QMainWindow, form_class) :
         self.driver = webdriver.Chrome(ChromeDriverManager().install())
 
         # Fixed Variable
-        self.vesselData = {"MOGENS MAERSK": "1RM", "MARSEILLE MAERSK":"Y29", "MARIE MAERSK" : "1JM", "MAJESTIC MAERSK":"1HM", "MADISON MAERSK":"1KM","MATHILDE MAERSK":"2BM","MAASTRICHT MAERSK":"Y34","MURCIA MAERSK":"Y31","METTE MAERSK":"1ZM","MUNICH MAERSK":"Y25","MERETE MAERSK":"1QM","MADRID MAERSK":"Y24"}
+        self.vessel_codes = {"MOGENS MAERSK": "1RM", "MARSEILLE MAERSK":"Y29", "MARIE MAERSK" : "1JM", "MAJESTIC MAERSK":"1HM", "MADISON MAERSK":"1KM","MATHILDE MAERSK":"2BM","MAASTRICHT MAERSK":"Y34","MURCIA MAERSK":"Y31","METTE MAERSK":"1ZM","MUNICH MAERSK":"Y25","MERETE MAERSK":"1QM","MADRID MAERSK":"Y24"}
         self.target_ports = ["Gdansk", "Bremerhaven"]
         self.months = {"Jan":1, "Feb":2, "Mar":3, "Apr":4, "May":5, "Jun":6, "Jul":7, "Aug":8, "Sep":9, "Oct":10, "Nov":11, "Dec":12 }
 
@@ -37,11 +37,19 @@ class WindowClass(QMainWindow, form_class) :
         self.date = QDate.currentDate()
         self.cur_date = self.date.toString("yyyy-MM-dd")
         self.dateEdit.setDate(self.date)
-        self.url = ""
         self.timerVar = QTimer()
         self.interval = 60000
         self.cnt = 0
 
+        self.url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vessel_codes[self.selected_vessel]}&fromDate={self.cur_date}"
+        self.driver.get(self.url)
+        self.driver.implicitly_wait(10) # Wait for Pop-up Screen
+
+        try:
+            btn_cookies = self.driver.find_element(By.CLASS_NAME, "coi-banner__accept")
+            btn_cookies.click()
+        except:
+            pass
 
         #self.crawl()
         self.initTable()
@@ -194,57 +202,62 @@ class WindowClass(QMainWindow, form_class) :
     def crawl(self):
 
         """Start Crawling"""
-
-        self.url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vesselData[self.selected_vessel]}&fromDate={self.cur_date}"
+        qdate = self.date
         driver = self.driver
-        driver.get(self.url)
-        driver.implicitly_wait(10)
-        try:
-            btn_cookies = driver.find_element(By.CLASS_NAME,"coi-banner__accept")
-            btn_cookies.click()
-        except:
-            pass
+        #driver.implicitly_wait(10)
 
-        # Get Divs from Schedule Result
-        results = driver.find_elements(By.CLASS_NAME,"ptp-results__transport-plan--item")
-        final_element = driver.find_elements(By.CLASS_NAME,"ptp-results__transport-plan--item-final")
-        port_info = [] # port, arrival, department
+        flag = True
+        search_BGB = False
+        BGB_result = []
+        while flag:
 
-        # Get Port Information like port name, a_or_d info, planned date
-        for i, result in enumerate(results + final_element):
-            port,_ = result.find_element(By.CLASS_NAME,"location").find_elements(By.TAG_NAME,"div")
-            a_or_d ,date = result.find_element(By.CLASS_NAME,"transport-label").find_elements(By.TAG_NAME,"div")
+            date = qdate.toString("yyyy-MM-dd")
+            self.url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vessel_codes[self.selected_vessel]}&fromDate={date}"
+            driver.get(self.url)
+            # Get Divs from Schedule Result
+            results = driver.find_elements(By.CLASS_NAME, "ptp-results__transport-plan--item")
+            final_element = driver.find_elements(By.CLASS_NAME, "ptp-results__transport-plan--item-final")
+            port_info = []  # port, arrival, department
 
-            p,d = port.text, date.text
-            a_or_d_list = a_or_d.text.split("-")
-            cur_vessel_w = a_or_d_list[-1].strip(" ")
+            # Get Port Information like port name, a_or_d info, planned date
 
-            if cur_vessel_w != self.vessel_w or p not in self.target_ports:
-                continue
+            for i, result in enumerate(results + final_element):
+                port, _ = result.find_element(By.CLASS_NAME, "location").find_elements(By.TAG_NAME, "div")
+                a_or_d, date = result.find_element(By.CLASS_NAME, "transport-label").find_elements(By.TAG_NAME, "div")
 
-            if "Arrival" in a_or_d.text.split("-")[0]:
-                info = [p,d]
-                port_info.append(info)
+                p, d = port.text, date.text
+                a_or_d_list = a_or_d.text.split("-")
+                cur_vessel_w = a_or_d_list[-1].strip(" ")
+
+                if cur_vessel_w == self.vessel_w and p in ["Algeciras", "Suez Canal"]:
+                    flag = False
+                    search_BGB = True
+
+                if search_BGB and p in self.target_ports:
+                    port_name = p
+                    date = d
+                    day, month, year, time = date.split()
+                    trans_date = f"{year}-{self.months[month]}-{day} {time}:00"
+                    BGB_result.append((port_name, trans_date))
+
+            # Page Search Interval - 7 days
+            qdate = qdate.addDays(-7)
+
+        if len(BGB_result) == 2:
+            if BGB_result[0][0] == "Gdansk":
+                BGB_result = [("Bremerhaven", "Omit")] + BGB_result
             else:
-                port_info[-1].append(d)
-        print(port_info)
+                BGB_result += [("Bremerhaven", "Not Yet")]
+        text = ""
+        for result in BGB_result:
+            text += f"{result[0]} - {result[1]} \n"
+        reply = self.message_question("", text)
+        if reply == QMessageBox.Yes:
+            print("Recorded")
+        else:
+            print("Not recorded")
 
-        result = []
-        if len(port_info) == 2:
-            result.append("Omit")
 
-        for data in port_info:
-            port_name = data[0]
-            date = data[1]
-            day, month, year, time = date.split()
-            trans_date =f"{year}-{self.months[month]}-{day} {time}:00"
-            result.append(trans_date)
-        title = f"{self.selected_vessel} {self.vessel_w}"
-        context = f"B - {result[0]} \nG - {result[1]} \nB - {result[2]}"
-        reply = self.message_question(title , context)
-
-        self.lbl_date.setText(f"Last Updated {self.cur_date}")
-        self.txt_time.setText(datetime.datetime.now().strftime("%y/%m/%d %H.%M.%S"))
 
 
 if __name__ == "__main__" :
