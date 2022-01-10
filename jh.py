@@ -41,9 +41,9 @@ class WindowClass(QMainWindow, form_class) :
         self.interval = 60000
         self.cnt = 0
 
-        self.url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vessel_codes[self.selected_vessel]}&fromDate={self.cur_date}"
-        self.driver.get(self.url)
-        self.driver.implicitly_wait(10) # Wait for Pop-up Screen
+        # self.url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vessel_codes[self.selected_vessel]}&fromDate={self.cur_date}"
+        # self.driver.get(self.url)
+        # self.driver.implicitly_wait(10) # Wait for Pop-up Screen
 
         try:
             btn_cookies = self.driver.find_element(By.CLASS_NAME, "coi-banner__accept")
@@ -51,7 +51,7 @@ class WindowClass(QMainWindow, form_class) :
         except:
             pass
 
-        #self.crawl()
+        # self.crawl()
         self.initTable()
 
         # Connect Functions with Widgets
@@ -68,7 +68,7 @@ class WindowClass(QMainWindow, form_class) :
         """Update Value Modified by User"""
 
         wb = openpyxl.load_workbook(filename="schedule(test).xlsx",read_only=False, data_only=True)
-        ws = wb["Vessel schedule"]
+        print(wb.sheetnames[0])
         target = chr(int(self.c) + 65) + str(self.r + 2) # (0,0) -> A1, Z열까지만 가능
         newValue = self.valueEdit.text()
         ws[target] = newValue
@@ -123,11 +123,29 @@ class WindowClass(QMainWindow, form_class) :
 
         """Initialize Table"""
 
+        wb = openpyxl.load_workbook(filename="schedule.xlsx", read_only=False, data_only=True)
+        ws = wb[wb.sheetnames[0]]
+        visible_rows = [[],[]]
+        flag = True
+        for i in range(4,35):
+            if tuple(ws.row_dimensions[i])[0][0] != "hidden":
+                cell_value = ws.cell(row=i,column=2).value
+                if cell_value != None:
+                    if "MAERSK" in cell_value or "Blank" in cell_value:
+                        if flag:
+                            visible_rows[0].append(i)
+                        else:
+                            visible_rows[1].append(i)
+                    else:
+                        flag = False
+        print(visible_rows)
+
         table1 = self.table1
         table2 = self.table2
         df = pd.read_excel("schedule.xlsx")
-        df1 = df.iloc[8:15,1:]
-        df2 = df.iloc[24:,1:8]
+
+        df1 = df.iloc[visible_rows[0][0]-2:visible_rows[0][-1]+1-2,1:]
+        df2 = df.iloc[visible_rows[1][0]-2:,1:8]
         df1.columns = ["Vessel Name(AE10)","Planned_ETA(B)","Current_ETA1(B)","Current_ETA2(B)","Delay(B)","Planned_ETA(G)","Current_ETA(G)","Delay(G)","Vessel Location","ETA Change"]
         df2.columns = ["Vessel Name(AE05)","Planned_ETA(B)","Current_ETA1(B)","Current_ETA2(B)","Delay(B)","Vessel Location","ETA Change"]
         self.df,self.df1,self.df2 = df,df1,df2
@@ -210,7 +228,6 @@ class WindowClass(QMainWindow, form_class) :
         search_BGB = False
         BGB_result = []
         while flag:
-
             date = qdate.toString("yyyy-MM-dd")
             self.url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vessel_codes[self.selected_vessel]}&fromDate={date}"
             driver.get(self.url)
