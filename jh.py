@@ -1,8 +1,9 @@
 import sys
 import os
 import datetime
-import openpyxl
 import pandas as pd
+import openpyxl
+from openpyxl.utils import get_column_letter
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
@@ -26,9 +27,16 @@ class WindowClass(QMainWindow, form_class) :
         self.driver = webdriver.Chrome(ChromeDriverManager().install())
 
         # Fixed Variable
-        self.vessel_codes = {"MOGENS MAERSK": "1RM", "MARSEILLE MAERSK":"Y29", "MARIE MAERSK" : "1JM", "MAJESTIC MAERSK":"1HM", "MADISON MAERSK":"1KM","MATHILDE MAERSK":"2BM","MAASTRICHT MAERSK":"Y34","MURCIA MAERSK":"Y31","METTE MAERSK":"1ZM","MUNICH MAERSK":"Y25","MERETE MAERSK":"1QM","MADRID MAERSK":"Y24"}
+        self.AE10 = {"MOGENS MAERSK": "1RM", "MARSEILLE MAERSK":"Y29", "MARIE MAERSK" : "1JM", "MAJESTIC MAERSK":"1HM", "MADISON MAERSK":"1KM","MATHILDE MAERSK":"2BM"}
+        self.AE05 = {"MAASTRICHT MAERSK":"Y34","MURCIA MAERSK":"Y31","METTE MAERSK":"1ZM","MUNICH MAERSK":"Y25","MERETE MAERSK":"1QM","MADRID MAERSK":"Y24"}
+        self.vessel_codes = dict(self.AE10, **self.AE05)
         self.target_ports = ["Gdansk", "Bremerhaven"]
         self.months = {"Jan":1, "Feb":2, "Mar":3, "Apr":4, "May":5, "Jun":6, "Jul":7, "Aug":8, "Sep":9, "Oct":10, "Nov":11, "Dec":12 }
+        self.filename = "schedule.xlsx"
+        self.wb = openpyxl.load_workbook(filename=self.filename, read_only=False, data_only=True)
+        self.ws = self.wb[self.wb.sheetnames[0]]
+
+
 
         # Vessel Variables ( Updated from Clicked Cell )
         self.selected_vessel = "MARIE MAERSK"
@@ -41,9 +49,13 @@ class WindowClass(QMainWindow, form_class) :
         self.interval = 60000
         self.cnt = 0
 
-        # self.url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vessel_codes[self.selected_vessel]}&fromDate={self.cur_date}"
-        # self.driver.get(self.url)
-        # self.driver.implicitly_wait(10) # Wait for Pop-up Screen
+        # Others
+        self.is_AE10 = False
+        self.is_AE05 = False
+
+        self.url = f"http://www.maersk.com/schedules/vesselSchedules?vesselCode={self.vessel_codes[self.selected_vessel]}&fromDate={self.cur_date}"
+        self.driver.get(self.url)
+        self.driver.implicitly_wait(10) # Wait for Pop-up Screen
 
         try:
             btn_cookies = self.driver.find_element(By.CLASS_NAME, "coi-banner__accept")
@@ -51,7 +63,7 @@ class WindowClass(QMainWindow, form_class) :
         except:
             pass
 
-        # self.crawl()
+        #self.crawl()
         self.initTable()
 
         # Connect Functions with Widgets
@@ -67,12 +79,11 @@ class WindowClass(QMainWindow, form_class) :
 
         """Update Value Modified by User"""
 
-        wb = openpyxl.load_workbook(filename="schedule(test).xlsx",read_only=False, data_only=True)
-        print(wb.sheetnames[0])
+
         target = chr(int(self.c) + 65) + str(self.r + 2) # (0,0) -> A1, Z열까지만 가능
         newValue = self.valueEdit.text()
-        ws[target] = newValue
-        wb.save("schedule.xlsx")
+        self.ws[target] = newValue
+        self.wb.save(self.filename)
         self.initTable()
 
     def resetUpdateLayout(self):
@@ -103,28 +114,34 @@ class WindowClass(QMainWindow, form_class) :
         layout.addWidget(e)
 
         self.r, self.c, self.valueEdit = r, c, e
+        print(self.r,self.c)
 
     def setLabel1(self, row, column):
 
         """Change Index Table1 to Original DataFrame"""
 
-        r,c = row+8,column+1
+        r,c = row+self.visible_rows[0][0]-2,column+1
         self.showClickedLabel(r,c,t1=True)
+
+        self.is_AE10 = True
+        self.is_AE05 = False
 
     def setLabel2(self, row, column):
 
         """Change Index Table2 to Original DataFrame"""
 
-        r, c = row + 24, column + 1
+        r, c = row + self.visible_rows[1][0]-2, column + 1
         print(self.df.iloc[r, c])
         self.showClickedLabel(r, c, t1 = False)
+
+        self.is_AE10 = False
+        self.is_AE05 = True
 
     def initTable(self):
 
         """Initialize Table"""
 
-        wb = openpyxl.load_workbook(filename="schedule.xlsx", read_only=False, data_only=True)
-        ws = wb[wb.sheetnames[0]]
+        ws = self.ws
         visible_rows = [[],[]]
         flag = True
         for i in range(4,35):
@@ -139,10 +156,11 @@ class WindowClass(QMainWindow, form_class) :
                     else:
                         flag = False
         print(visible_rows)
+        self.visible_rows = visible_rows
 
         table1 = self.table1
         table2 = self.table2
-        df = pd.read_excel("schedule.xlsx")
+        df = pd.read_excel(self.filename)
 
         df1 = df.iloc[visible_rows[0][0]-2:visible_rows[0][-1]+1-2,1:]
         df2 = df.iloc[visible_rows[1][0]-2:,1:8]
@@ -185,7 +203,6 @@ class WindowClass(QMainWindow, form_class) :
         elif text == "10시간":
             self.interval = 1000 * 60 * 60 * 10
 
-
     def stopTimer(self):
 
         """Stop Timer"""
@@ -222,7 +239,6 @@ class WindowClass(QMainWindow, form_class) :
         """Start Crawling"""
         qdate = self.date
         driver = self.driver
-        #driver.implicitly_wait(10)
 
         flag = True
         search_BGB = False
@@ -234,7 +250,6 @@ class WindowClass(QMainWindow, form_class) :
             # Get Divs from Schedule Result
             results = driver.find_elements(By.CLASS_NAME, "ptp-results__transport-plan--item")
             final_element = driver.find_elements(By.CLASS_NAME, "ptp-results__transport-plan--item-final")
-            port_info = []  # port, arrival, department
 
             # Get Port Information like port name, a_or_d info, planned date
 
@@ -244,7 +259,7 @@ class WindowClass(QMainWindow, form_class) :
 
                 p, d = port.text, date.text
                 a_or_d_list = a_or_d.text.split("-")
-                cur_vessel_w = a_or_d_list[-1].strip(" ")
+                cur_vessel_w = a_or_d_list[-1].strip(" ") # ex) 143W
 
                 if cur_vessel_w == self.vessel_w and p in ["Algeciras", "Suez Canal"]:
                     flag = False
@@ -254,8 +269,9 @@ class WindowClass(QMainWindow, form_class) :
                     port_name = p
                     date = d
                     day, month, year, time = date.split()
-                    trans_date = f"{year}-{self.months[month]}-{day} {time}:00"
-                    BGB_result.append((port_name, trans_date))
+                    str_date = f"{year}-{self.months[month]}-{day} {time}:00"
+                    trans_datetime = datetime.datetime.strptime(str_date,'%Y-%m-%d %H:%M:%S')
+                    BGB_result.append((port_name, trans_datetime))
 
             # Page Search Interval - 7 days
             qdate = qdate.addDays(-7)
@@ -266,11 +282,42 @@ class WindowClass(QMainWindow, form_class) :
             else:
                 BGB_result += [("Bremerhaven", "Not Yet")]
         text = ""
+        print(BGB_result)
         for result in BGB_result:
             text += f"{result[0]} - {result[1]} \n"
+
         reply = self.message_question("", text)
         if reply == QMessageBox.Yes:
-            print("Recorded")
+            ws = self.ws
+            excel_row = self.r + 2
+            if self.is_AE10 and not self.is_AE05:
+                brem_1 = "D" + str(excel_row)
+                gdansk = "H" + str(excel_row)
+                brem_2 = "E" + str(excel_row)
+
+                ws[brem_1] = BGB_result[0][1]
+                ws[gdansk] = BGB_result[1][1]
+                ws[brem_2] = BGB_result[2][1]
+
+            elif not self.is_AE10 and self.is_AE05:
+                brem_1 = "D" + str(excel_row)
+                brem_2 = "E" + str(excel_row)
+
+                ws[brem_1] = BGB_result[0][1]
+                ws[brem_2] = BGB_result[1][1]
+
+            delay_cell = "F" + str(excel_row)
+            try:
+                delay = self.ws["D"+str(excel_row)].value - self.ws["C"+str(excel_row)].value
+            except:
+                delay = self.ws["E"+str(excel_row)].value - self.ws["C"+str(excel_row)].value
+
+            day = delay.days
+            if delay.seconds / (60 * 60 * 24) >= 0.5: day += 1
+            ws[delay_cell] = day
+
+            self.wb.save(self.filename)
+            self.initTable()
         else:
             print("Not recorded")
 
