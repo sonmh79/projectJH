@@ -11,17 +11,46 @@
 
 ### 실행 화면
 
-<img width="416" alt="jhresult" src="https://user-images.githubusercontent.com/78152114/141646688-a042a7bb-4721-4ae0-847a-ef6c634035cf.png">
+<img width="216" alt="jhresult" src="https://user-images.githubusercontent.com/78152114/141646688-a042a7bb-4721-4ae0-847a-ef6c634035cf.png">
 
-### 사용 설명
-
-<img width="416" alt="jhresult" src="https://user-images.githubusercontent.com/78152114/141647260-27852112-fd22-4485-b3c0-ac3b6a0e616a.png">
+<img width="216" alt="jhresult" src="https://user-images.githubusercontent.com/78152114/141647260-27852112-fd22-4485-b3c0-ac3b6a0e616a.png">
 
 Last Updated -2021/11/13 SAT
 1. 선박 스케쥴 결과 표시
 2. 수동 업데이트
 3. 업데이트 정보 표시
 4. 자동 업데이트
+
+----
+
+## ver 2.0
+
+### 실행화면
+<img width="400" alt="스크린샷 2022-01-12 오후 3 36 25" src="https://user-images.githubusercontent.com/78152114/149076654-1a771abc-02b7-4bf7-805d-2532fe529ef3.png">
+
+### 설명
+
+엑셀시트 내의 두 개의 `테이블`을 찾아 `데이터프레임`으로 변환 후 `테이블 위젯`으로 변경 (Excel -> DataFrame -> TableWidget)
+
+중간의 DataFrame은 `임시 저장소` 역할이 가능하다. 
+
+[머스크 페이지](https://www.maersk.com/schedules/vesselSchedules) 에서 찾고자 하는 `vessel`를 검색해 스케쥴을 검색한다.
+
+URL 검색을 통해 이루어지며 vessel code와 date가 필요하다.
+
+vessel code는 `매핑 테이블`을 직접 만들어 관리하며 date는 원하는 날짜 기준으로 7일 간격으로 검색한다.
+
+두 개의 테이블은 서로 다른 두 개의 항로임을 나타내며, tabel1은 `Bremerhaven`과 `Gdansk`항을 , table2는 `Bremerhaven`항만 필요하다.
+
+이미 정해진 항로를 바탕으로 찾고자 하는 항구의 이전의 항구를 검색하여 찾는다.
+
+table1은 Bremerhaven -> Gdansk -> Bremerhaven 순이며, table2는 Bremerhaven -> Bremerhaven이다.
+
+검색하는 시점의 상황 또는 선박 사정에 따라 일부 항구를 건너뛰는 경우, 아직 스케줄에 업데이트 되지 않은 경우 등이 존재하기 때문에 상황에 맞는 알고리즘이 필요하다.
+
+알고리즘은 프로그램에서 테이블의 특정 셀을 클릭하면 해당 행에서 *Vessel Name*에 해당하는 열을 찾아 찾고자하는 선박 이름을 추출하고 이를 매핑 테이블에서 검색해 선박 코드를 찾는다.
+
+찾은 선박 코드와 날짜를 url에 맞게 입력해 검색을 요청하고 원하는 데이터를 찾는다.
 
 ## Tips
 
