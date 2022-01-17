@@ -99,7 +99,11 @@ class WindowClass(QMainWindow, form_class) :
 
         clickedColumnValue = self.df.iloc[r,c]
         vessel_info = self.df.iloc[r,1].split()
-        self.selected_vessel = vessel_info[0] + " " + vessel_info[1]
+        self.selected_vessel = ""
+        for i in range(len(vessel_info)-1):
+            self.selected_vessel += vessel_info[i]
+            if i != len(vessel_info)-2:
+                self.selected_vessel += " "
         self.vessel_w = vessel_info[-1].strip(" ") # 142W
         self.lbl_vesselName.setText(f"Vessel Name : {self.selected_vessel}")
         self.lbl_vesselW.setText(f"Vessel W : {self.vessel_w}")
