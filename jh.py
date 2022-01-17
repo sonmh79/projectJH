@@ -26,9 +26,8 @@ class WindowClass(QMainWindow, form_class) :
         self.driver = webdriver.Chrome(ChromeDriverManager().install())
 
         # Fixed Variable
-        # 박주환 바보
-        self.AE10 = {"MOGENS MAERSK": "1RM", "MARSEILLE MAERSK":"Y29", "MARIE MAERSK" : "1JM", "MAJESTIC MAERSK":"1HM", "MADISON MAERSK":"1KM","MATHILDE MAERSK":"2BM", "MANCHESTER MAERSK":"Y30","MARY MAERSK":"1IM","MARIT MAERSK":"2AM","MAGLEBY MAERSK":"1LM","MAYVIEW MAERSK":"1PM"}
-        self.AE05 = {"MAASTRICHT MAERSK":"Y34","MURCIA MAERSK":"Y31","METTE MAERSK":"1ZM","MUNICH MAERSK":"Y25","MERETE MAERSK":"1QM","MADRID MAERSK":"Y24","MARGRETHE MAERSK":"1XM","MILAN MAERSK":"Y27","MSC RIFAYA":"F6M"}
+        self.AE10 = {"MOGENS MAERSK": "1RM", "MARSEILLE MAERSK":"Y29", "MARIE MAERSK" : "1JM", "MAJESTIC MAERSK":"1HM", "MADISON MAERSK":"1KM","MATHILDE MAERSK":"2BM", "MANCHESTER MAERSK":"Y30","MARY MAERSK":"1IM","MARIT MAERSK":"2AM","MAGLEBY MAERSK":"1LM","MAYVIEW MAERSK":"1PM","MARSTAL MAERSK":"1NM","MAERSK MC-KINNEY MOLLER":"1GM"}
+        self.AE05 = {"MAASTRICHT MAERSK":"Y34","MURCIA MAERSK":"Y31","METTE MAERSK":"1ZM","MUNICH MAERSK":"Y25","MERETE MAERSK":"1QM","MADRID MAERSK":"Y24","MARGRETHE MAERSK":"1XM","MILAN MAERSK":"Y27","MSC RIFAYA":"F6M","MUMBAI MAERSK":"Y33","MAREN MAERSK":"1VM","MORTEN MAERSK":"1SM","MARIBO MAERSK":"1MM"}
         self.vessel_codes = dict(self.AE10, **self.AE05)
         self.target_ports = ["Gdansk", "Bremerhaven"]
         self.months = {"Jan":1, "Feb":2, "Mar":3, "Apr":4, "May":5, "Jun":6, "Jul":7, "Aug":8, "Sep":9, "Oct":10, "Nov":11, "Dec":12 }
@@ -100,7 +99,11 @@ class WindowClass(QMainWindow, form_class) :
 
         clickedColumnValue = self.df.iloc[r,c]
         vessel_info = self.df.iloc[r,1].split()
-        self.selected_vessel = vessel_info[0] + " " + vessel_info[1]
+        self.selected_vessel = ""
+        for i in range(len(vessel_info)-1):
+            self.selected_vessel += vessel_info[i]
+            if i != len(vessel_info)-2:
+                self.selected_vessel += " "
         self.vessel_w = vessel_info[-1].strip(" ") # 142W
         self.lbl_vesselName.setText(f"Vessel Name : {self.selected_vessel}")
         self.lbl_vesselW.setText(f"Vessel W : {self.vessel_w}")
@@ -241,7 +244,7 @@ class WindowClass(QMainWindow, form_class) :
         return reply
 
     def crawl(self):
-                                                                                1111
+
         """Start Crawling"""
 
         if self.selected_vessel not in self.vessel_codes:
