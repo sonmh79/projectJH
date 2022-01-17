@@ -26,6 +26,7 @@ class WindowClass(QMainWindow, form_class) :
         self.driver = webdriver.Chrome(ChromeDriverManager().install())
 
         # Fixed Variable
+        # 박주환 바보
         self.AE10 = {"MOGENS MAERSK": "1RM", "MARSEILLE MAERSK":"Y29", "MARIE MAERSK" : "1JM", "MAJESTIC MAERSK":"1HM", "MADISON MAERSK":"1KM","MATHILDE MAERSK":"2BM", "MANCHESTER MAERSK":"Y30","MARY MAERSK":"1IM","MARIT MAERSK":"2AM","MAGLEBY MAERSK":"1LM","MAYVIEW MAERSK":"1PM"}
         self.AE05 = {"MAASTRICHT MAERSK":"Y34","MURCIA MAERSK":"Y31","METTE MAERSK":"1ZM","MUNICH MAERSK":"Y25","MERETE MAERSK":"1QM","MADRID MAERSK":"Y24","MARGRETHE MAERSK":"1XM","MILAN MAERSK":"Y27","MSC RIFAYA":"F6M"}
         self.vessel_codes = dict(self.AE10, **self.AE05)
@@ -240,7 +241,7 @@ class WindowClass(QMainWindow, form_class) :
         return reply
 
     def crawl(self):
-
+                                                                                1111
         """Start Crawling"""
 
         if self.selected_vessel not in self.vessel_codes:
